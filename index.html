@@ -41,17 +41,10 @@ h1{
   -webkit-text-fill-color: transparent;
 }
 
-.yellow{
-  color:#ffd800;
-}
+.yellow{ color:#ffd800; }
+.normal{ color:white; }
 
-.normal{
-  color:white;
-}
-
-#controls{
-  margin-top:20px;
-}
+#controls{ margin-top:20px; }
 
 .adjust{
   position:fixed;
@@ -127,9 +120,7 @@ let offset = 0;
 const fileA = "A.mp4";
 const fileB = "B.mp4";
 
-function wait(ms){
-  return new Promise(r => setTimeout(r, ms));
-}
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 async function playFile(src){
   const p = document.getElementById("player");
@@ -138,23 +129,20 @@ async function playFile(src){
   await p.play();
 }
 
-function adjust(val){
-  offset += val;
-}
+function adjust(val){ offset += val; }
 
+// ⭐ 通常周期
 async function cycle(type){
 
-  const base = Number(document.getElementById("interval").value);
+  const base = Number(interval.value);
   const total = base + offset;
 
-  const cap = document.getElementById("caption");
+  const cap = caption;
   const start = performance.now();
 
   while(running){
 
-    const elapsed = (performance.now() - start) / 1000;
-    const remain = total - elapsed;
-
+    const remain = total - (performance.now()-start)/1000;
     if(remain <= 0) break;
 
     const t = Math.ceil(remain);
@@ -162,52 +150,75 @@ async function cycle(type){
     if(remain <= 4){
 
       if(!cap.dataset.played){
-        cap.dataset.played = "1";
-        playFile(type === "A" ? fileA : fileB);
+        cap.dataset.played="1";
+        playFile(type==="A"?fileA:fileB);
       }
 
-      if(type === "A"){
-        cap.className = "rainbow";
-        cap.textContent = "虹色の床まで " + t + "秒";
-      }else{
-        cap.className = "yellow";
-        cap.textContent = "黄色の床まで " + t + "秒";
-      }
+      cap.className = type==="A"?"rainbow":"yellow";
+      cap.textContent = (type==="A"?"虹色":"黄色")+"の床まで "+t+"秒";
 
     }else{
-      cap.dataset.played = "";
-      cap.className = "normal";
-      cap.textContent = "次の床まで " + t + "秒";
+      cap.dataset.played="";
+      cap.className="normal";
+      cap.textContent="次の床まで "+t+"秒";
     }
 
     await wait(50);
   }
 
   if(running){
-    cap.textContent = "";
+    cap.textContent="";
     await wait(300);
   }
 }
 
-async function startTimer(initialDelay = true){
+// ⭐ 初回用：固定4秒虹
+async function firstRainbow(){
+
+  const cap = caption;
+  const start = performance.now();
+
+  while(running){
+
+    const remain = 4 - (performance.now()-start)/1000;
+    if(remain <= 0) break;
+
+    const t = Math.ceil(remain);
+
+    cap.className="rainbow";
+    cap.textContent="虹色の床まで "+t+"秒";
+
+    await wait(50);
+  }
+
+  if(running){
+    playFile(fileA);
+    cap.textContent="";
+    await wait(300);
+  }
+}
+
+async function startTimer(initialDelay=true){
 
   if(running) return;
-  running = true;
+  running=true;
 
   if(initialDelay) await wait(1000);
 
-  await cycle("A");
+  // ⭐ 最初だけ虹4秒
+  await firstRainbow();
 
   while(running){
+    await cycle("A");
     await cycle("A");
     await cycle("B");
   }
 }
 
 function stopTimer(){
-  running = false;
-  document.getElementById("caption").textContent = "";
-  document.getElementById("player").pause();
+  running=false;
+  caption.textContent="";
+  player.pause();
 }
 
 function toggleTimer(){
@@ -216,17 +227,17 @@ function toggleTimer(){
 
 async function resetTimer(){
 
-  running = false;
-
+  running=false;
   await wait(20);
 
-  document.getElementById("caption").textContent = "";
-  document.getElementById("player").pause();
+  caption.textContent="";
+  player.pause();
 
+  // ⭐ 待ちなし虹開始
   startTimer(false);
 }
 
-document.addEventListener("keydown", e=>{
+document.addEventListener("keydown",e=>{
   if(e.code==="Space"){
     e.preventDefault();
     toggleTimer();
