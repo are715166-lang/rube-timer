@@ -47,7 +47,7 @@ body{
 <div id="caption"></div>
 
 <label>床の間隔（秒）</label><br>
-<input type="number" id="interval" value="3" style="font-size:20px;"><br><br>
+<input type="number" id="interval" value="16" style="font-size:20px;"><br><br>
 
 <button onclick="toggleTimer()" style="font-size:26px;padding:14px 40px;">
 開始 / 停止
@@ -82,37 +82,39 @@ async function countdown(text, seconds, styleClass){
   }
 }
 
+// ⭐ 入力秒数に応じた1サイクル
+async function cycle(type){
+
+  const total = Number(document.getElementById("interval").value);
+  const waitTime = Math.max(0, total - 4);
+
+  // ⏱ 次の床まで（白）
+  if(waitTime > 0){
+    await countdown("次の床まで", waitTime, "normal");
+  }
+
+  if(!running) return;
+
+  // 🎬 再生 + 色付きカウント
+  if(type === "A"){
+    playFile(fileA);
+    await countdown("虹色の床まで", 4, "rainbow");
+  }else{
+    playFile(fileB);
+    await countdown("黄色の床まで", 4, "yellow");
+  }
+}
+
 async function startTimer(){
   if(running) return;
   running = true;
 
-  const interval = () => Number(document.getElementById("interval").value);
-
   await wait(1000);
 
   while(running){
-
-    // 🌈 A
-    playFile(fileA);
-    await countdown("虹色の床まで", 4, "rainbow");
-
-    if(!running) break;
-    await countdown("次の床まで", interval(), "normal");
-
-    // 🌈 A
-    playFile(fileA);
-    await countdown("虹色の床まで", 4, "rainbow");
-
-    if(!running) break;
-    await countdown("次の床まで", interval(), "normal");
-
-    // 🟡 B
-    playFile(fileB);
-    await countdown("黄色の床まで", 4, "yellow");
-
-    if(!running) break;
-    await countdown("次の床まで", interval(), "normal");
-
+    await cycle("A");
+    await cycle("A");
+    await cycle("B");
   }
 }
 
@@ -128,6 +130,7 @@ function toggleTimer(){
   else startTimer();
 }
 
+// Spaceキー
 document.addEventListener("keydown", e=>{
   if(e.code==="Space"){
     e.preventDefault();
