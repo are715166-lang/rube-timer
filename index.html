@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ルベタイマー</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  background:black;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+  margin-top:40px;
+}
+
+#caption{
+  font-size:42px;
+  margin:50px 20px;
+  min-height:140px;
+  font-weight:bold;
+}
+
+.rainbow{
+  background: linear-gradient(
+    90deg,
+    red, orange, yellow, green, cyan, blue, violet
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.yellow{
+  color:#ffd800;
+}
+
+.normal{
+  color:white;
+}
+</style>
+</head>
+
+<body>
+
+<h1 style="font-size:48px;">ルベタイマー</h1>
+
+<div id="caption"></div>
+
+<label>床の間隔（秒）</label><br>
+<input type="number" id="interval" value="3" style="font-size:20px;"><br><br>
+
+<button onclick="toggleTimer()" style="font-size:26px;padding:14px 40px;">
+開始 / 停止
+</button>
+
+<video id="player" style="display:none;" playsinline></video>
+
+<script>
+let running = false;
+
+const fileA = "A.mp4";
+const fileB = "B.mp4";
+
+function wait(ms){
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function playFile(src){
+  const player = document.getElementById("player");
+  player.src = src;
+  player.currentTime = 0;
+  await player.play();
+}
+
+async function countdown(text, seconds, styleClass){
+  const cap = document.getElementById("caption");
+  cap.className = styleClass;
+
+  for(let i = seconds; i >= 0 && running; i--){
+    cap.textContent = text + i + "秒";
+    await wait(1000);
+  }
+}
+
+async function startTimer(){
+  if(running) return;
+  running = true;
+
+  const interval = () => Number(document.getElementById("interval").value);
+
+  await wait(1000);
+
+  while(running){
+
+    // 🌈 A
+    playFile(fileA);
+    await countdown("虹色の床まで", 4, "rainbow");
+
+    if(!running) break;
+    await countdown("次の床まで", interval(), "normal");
+
+    // 🌈 A
+    playFile(fileA);
+    await countdown("虹色の床まで", 4, "rainbow");
+
+    if(!running) break;
+    await countdown("次の床まで", interval(), "normal");
+
+    // 🟡 B
+    playFile(fileB);
+    await countdown("黄色の床まで", 4, "yellow");
+
+    if(!running) break;
+    await countdown("次の床まで", interval(), "normal");
+
+  }
+}
+
+function stopTimer(){
+  running = false;
+  document.getElementById("caption").textContent = "";
+  const player = document.getElementById("player");
+  player.pause();
+}
+
+function toggleTimer(){
+  if(running) stopTimer();
+  else startTimer();
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space"){
+    e.preventDefault();
+    toggleTimer();
+  }
+});
+</script>
+
+</body>
+</html>
