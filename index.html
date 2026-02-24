@@ -15,8 +15,8 @@ body{
 }
 
 #caption{
-  font-size:42px;
-  margin:50px 20px;
+  font-size:44px;
+  margin:60px 20px;
   min-height:140px;
   font-weight:bold;
 }
@@ -42,14 +42,14 @@ body{
 
 <body>
 
-<h1 style="font-size:48px;">ルベタイマー</h1>
+<h1 style="font-size:52px;">ルベタイマー</h1>
 
 <div id="caption"></div>
 
 <label>床の間隔（秒）</label><br>
-<input type="number" id="interval" value="16" style="font-size:20px;"><br><br>
+<input type="number" id="interval" value="16" style="font-size:22px;"><br><br>
 
-<button onclick="toggleTimer()" style="font-size:26px;padding:14px 40px;">
+<button onclick="toggleTimer()" style="font-size:28px;padding:16px 48px;">
 開始 / 停止
 </button>
 
@@ -72,36 +72,51 @@ async function playFile(src){
   await player.play();
 }
 
-async function countdown(text, seconds, styleClass){
-  const cap = document.getElementById("caption");
-  cap.className = styleClass;
-
-  for(let i = seconds; i >= 0 && running; i--){
-    cap.textContent = text + i + "秒";
-    await wait(1000);
-  }
-}
-
-// ⭐ 入力秒数に応じた1サイクル
+// ⭐ 入力秒数そのまま表示し、残り4秒で切替
 async function cycle(type){
 
   const total = Number(document.getElementById("interval").value);
-  const waitTime = Math.max(0, total - 4);
+  const cap = document.getElementById("caption");
 
-  // ⏱ 次の床まで（白）
-  if(waitTime > 0){
-    await countdown("次の床まで", waitTime, "normal");
+  for(let t = total; t > 0 && running; t--){
+
+    // ⏳ 残り4秒以下で色付き＋動画再生
+    if(t <= 4){
+
+      if(t === 4){
+        if(type === "A"){
+          playFile(fileA);
+        }else{
+          playFile(fileB);
+        }
+      }
+
+      if(type === "A"){
+        cap.className = "rainbow";
+        cap.textContent = "虹色の床まで " + t + "秒";
+      }else{
+        cap.className = "yellow";
+        cap.textContent = "黄色の床まで " + t + "秒";
+      }
+
+    }else{
+      cap.className = "normal";
+      cap.textContent = "次の床まで " + t + "秒";
+    }
+
+    await wait(1000);
   }
 
-  if(!running) return;
-
-  // 🎬 再生 + 色付きカウント
-  if(type === "A"){
-    playFile(fileA);
-    await countdown("虹色の床まで", 4, "rainbow");
-  }else{
-    playFile(fileB);
-    await countdown("黄色の床まで", 4, "yellow");
+  // 0秒表示
+  if(running){
+    if(type === "A"){
+      cap.classNameE = "rainbow";
+      cap.textContent = "虹色の床まで 0秒";
+    }else{
+      cap.className = "yellow";
+      cap.textContent = "黄色の床まで 0秒";
+    }
+    await wait(1000);
   }
 }
 
@@ -130,7 +145,6 @@ function toggleTimer(){
   else startTimer();
 }
 
-// Spaceキー
 document.addEventListener("keydown", e=>{
   if(e.code==="Space"){
     e.preventDefault();
