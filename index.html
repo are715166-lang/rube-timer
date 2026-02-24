@@ -6,13 +6,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{background:black;color:white;font-family:sans-serif;text-align:center;margin:0;}
-h1{font-size:52px;margin-top:20px;}
-#subnote{font-size:18px;opacity:0.7;margin-bottom:20px;}
+body{
+  background:black;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+  margin:0;
+}
+
+h1{
+  font-size:52px;
+  margin-top:20px;
+}
 
 #caption{
-  font-size:46px;
-  margin:60px 20px;
+  font-size:48px;
+  margin:80px 20px;
   min-height:140px;
   font-weight:bold;
 }
@@ -24,32 +33,8 @@ h1{font-size:52px;margin-top:20px;}
   -webkit-text-fill-color:transparent;
 }
 
-.yellow{color:#ffd800;}
-.normal{color:white;}
-
-.adjust{
-  position:fixed;
-  right:10px;
-  top:50%;
-  transform:translateY(-50%);
-}
-
-.adjust button{
-  display:block;
-  font-size:22px;
-  padding:12px;
-  margin:8px 0;
-}
-
-#adjustLabel{font-size:14px;opacity:0.7;margin-bottom:6px;}
-
-#note{
-  position:fixed;
-  bottom:10px;
-  width:100%;
-  font-size:16px;
-  opacity:0.6;
-}
+.yellow{ color:#ffd800; }
+.normal{ color:white; }
 </style>
 </head>
 
@@ -57,89 +42,38 @@ h1{font-size:52px;margin-top:20px;}
 
 <h1>ルベタイマー</h1>
 
-<div id="subnote">
-グランドカラミティの表示が出た瞬間に押してください
-</div>
-
 <div id="caption"></div>
 
-<div>
-床の間隔（秒）<br>
-<input type="number" id="interval" value="16" step="0.1"
-style="font-size:22px;"><br><br>
-
-<button onclick="toggleTimer()"
+<button onclick="startTimer()"
 style="font-size:28px;padding:16px 48px;">
-開始 / 停止
+開始
 </button>
-
-<br><br>
-
-<button onclick="resetTimer()"
-style="font-size:22px;padding:10px 30px;">
-リセット
-</button>
-
-<div style="font-size:14px;opacity:0.7;">
-黄色の床が出た瞬間に押してください
-</div>
-</div>
-
-<div id="note">
-グランドカラミティの吹き出しと同時に開始を押してください
-</div>
-
-<div class="adjust">
-<div id="adjustLabel">ズレ調整用ボタン</div>
-<button onclick="adjust(-0.5)">−0.5s</button>
-<button onclick="adjust(0.5)">＋0.5s</button>
-</div>
 
 <video id="player" style="display:none;" playsinline></video>
 
 <script>
 let running=false;
-let offset=0;
-let loopIndex=0;
+let current="A";
+
+const intervalAB = 22.5;
+const intervalBA = 24.5;
 
 const fileA="A.mp4";
 const fileB="B.mp4";
 
-function wait(ms){return new Promise(r=>setTimeout(r,ms));}
-function adjust(v){offset+=v;}
-
-async function playSound(type){
-  const p=player;
-  p.src = type==="A"?fileA:fileB;
-  p.currentTime=0;
-  try{await p.play();}catch{}
+function wait(ms){
+  return new Promise(r=>setTimeout(r,ms));
 }
 
-async function rainbowOnly(type){
-
-  let t=4;
-  playSound(type);
-
-  while(running && t>0){
-
-    if(type==="A"){
-      caption.className="rainbow";
-      caption.textContent="虹色の床まで "+t+"秒";
-    }else{
-      caption.className="yellow";
-      caption.textContent="黄色の床まで "+t+"秒";
-    }
-
-    await wait(1000);
-    t--;
-  }
-
-  caption.textContent="";
+async function playSound(type){
+  player.src = type==="A"?fileA:fileB;
+  player.currentTime=0;
+  try{ await player.play(); }catch{}
 }
 
 async function cycle(type){
 
-  const total = Number(interval.value) + offset;
+  const total = type==="A"?intervalAB:intervalBA;
   const start = performance.now();
   let played=false;
 
@@ -178,12 +112,13 @@ async function cycle(type){
   caption.textContent="";
 }
 
-async function mainLoop(){
-  const seq=["A","A","B"];
+async function loop(){
+
   while(running){
-    const type = seq[loopIndex % 3];
-    loopIndex++;
-    await cycle(type);
+
+    await cycle(current);
+
+    current = current==="A"?"B":"A";
   }
 }
 
@@ -192,41 +127,27 @@ async function startTimer(){
   if(running) return;
 
   running=true;
-  loopIndex=0;
+  current="A";
 
-  // ⭐最初だけ1秒後に虹4秒（A）
-  await wait(1000);
-  await rainbowOnly("A");
+  // ⭐ 2.5秒後に A の虹4秒カウント開始
+  await wait(2500);
 
-  // ⭐最初のAを消費したので index=1
-  loopIndex=1;
+  // Aの4秒カウントを手動実行
+  playSound("A");
 
-  mainLoop();
-}
-
-function stopTimer(){
-  running=false;
-  caption.textContent="";
-  player.pause();
-}
-
-function toggleTimer(){
-  running?stopTimer():startTimer();
-}
-
-function resetTimer(){
-  stopTimer();
-  running=true;
-  loopIndex=0;
-  mainLoop(); // 即再開（通常A）
-}
-
-document.addEventListener("keydown",e=>{
-  if(e.code==="Space"){
-    e.preventDefault();
-    toggleTimer();
+  for(let t=4; t>0 && running; t--){
+    caption.className="rainbow";
+    caption.textContent="虹色の床まで "+t+"秒";
+    await wait(1000);
   }
-});
+
+  caption.textContent="";
+
+  // その後は通常ループ（次はB）
+  current="B";
+
+  loop();
+}
 </script>
 
 </body>
