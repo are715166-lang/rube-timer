@@ -70,70 +70,68 @@ button{
 <audio id="B" src="B.mp4"></audio>
 
 <script>
-// フェーズ定義
+// ===== フェーズ設定 =====
 const phases = [
   { type:"rainbow", duration:6.5 },
-  { type:"yellow",  duration:22.8 },
-  { type:"rainbow", duration:23.7 },
-  { type:"yellow",  duration:22.8 }
+  { type:"yellow",  duration:22.2 },
+  { type:"rainbow", duration:24.2 },
+  { type:"yellow",  duration:22.2 }
 ];
 
 let phaseIndex = 0;
-let timeLeft = 6.5;
-let timer = null;
-let lastBeepPhase = -1;
+let phaseStartTime = 0;
+let beepPlayed = false;
+let running = false;
 
-// ▶️ 通常開始（技発動）
-function startNormal(){
-  startTimer(0);
-}
-
-// 🌈 虹が今出た
-function startFromRainbow(){
-  startTimer(1); // 次は黄色
-}
-
-// 🟡 黄色が今出た
-function startFromYellow(){
-  startTimer(2); // 次は虹
-}
+function startNormal(){ startTimer(0); }
+function startFromRainbow(){ startTimer(1); }
+function startFromYellow(){ startTimer(2); }
 
 function startTimer(startIndex){
   phaseIndex = startIndex;
-  timeLeft = phases[phaseIndex].duration;
-  lastBeepPhase = -1;
-
-  clearInterval(timer);
-
-  timer = setInterval(()=>{
-    const phase = phases[phaseIndex];
-
-    // 🔔 4.3秒前に音
-    if(timeLeft <= 4.3 && lastBeepPhase !== phaseIndex){
-      if(phase.type === "rainbow") A.play();
-      else B.play();
-      lastBeepPhase = phaseIndex;
-    }
-
-    timeLeft -= 0.1;
-
-    if(timeLeft <= 0){
-      phaseIndex++;
-      if(phaseIndex >= phases.length) phaseIndex = 2;
-      timeLeft = phases[phaseIndex].duration;
-      lastBeepPhase = -1;
-    }
-
-    updateDisplay();
-
-  }, 100);
+  phaseStartTime = performance.now();
+  beepPlayed = false;
+  running = true;
+  requestAnimationFrame(update);
 }
 
-function updateDisplay(){
-  const phase = phases[phaseIndex];
-  const t = timeLeft.toFixed(1);
+function update(){
+  if(!running) return;
 
-  if(phase.type === "rainbow"){
+  const now = performance.now();
+  const phase = phases[phaseIndex];
+
+  const elapsed = (now - phaseStartTime) / 1000;
+  const remaining = phase.duration - elapsed;
+
+  // 🔔 4.3秒前
+  if(remaining <= 4.3 && !beepPlayed){
+    if(phase.type === "rainbow") A.play();
+    else B.play();
+    beepPlayed = true;
+  }
+
+  // フェーズ終了
+  if(remaining <= 0){
+    phaseIndex++;
+    if(phaseIndex >= phases.length) phaseIndex = 2;
+
+    phaseStartTime = now;
+    beepPlayed = false;
+
+    requestAnimationFrame(update);
+    return;
+  }
+
+  updateDisplay(phase.type, remaining);
+
+  requestAnimationFrame(update);
+}
+
+function updateDisplay(type, time){
+  const t = time.toFixed(1);
+
+  if(type === "rainbow"){
     display.textContent = `虹の床まで${t}秒`;
     display.className = "rainbow";
   }else{
