@@ -1,157 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ルベタイマー</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
+<title>ルベタイマーⅢ</title>
 <style>
-body{
-  background:black;
-  color:white;
-  font-family:sans-serif;
-  text-align:center;
-  margin:0;
+body {
+  background: black;
+  color: white;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
-
-h1{
-  font-size:52px;
-  margin-top:20px;
+.box {
+  text-align: center;
 }
-
-#caption{
-  font-size:48px;
-  margin:80px 20px;
-  min-height:140px;
-  font-weight:bold;
+h1 {
+  font-size: 48px;
 }
-
-.rainbow{
-  background:linear-gradient(90deg,
-    red,orange,yellow,green,cyan,blue,violet);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
+#display {
+  font-size: 64px;
+  margin: 30px 0;
+  font-family: monospace;
 }
-
-.yellow{ color:#ffd800; }
-.normal{ color:white; }
+button {
+  font-size: 24px;
+  padding: 15px 40px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
 </style>
 </head>
-
 <body>
 
-<h1>ルベタイマー</h1>
+<div class="box">
+  <h1>ルベタイマーⅢ</h1>
+  <div id="display">待機中</div>
+  <button onclick="start()">開始</button>
+</div>
 
-<div id="caption"></div>
-
-<button onclick="startTimer()"
-style="font-size:28px;padding:16px 48px;">
-開始
-</button>
-
-<video id="player" style="display:none;" playsinline></video>
+<audio id="A" src="A.mp4"></audio>
+<audio id="B" src="B.mp4"></audio>
 
 <script>
-let running=false;
-let current="A";
+let phases = [
+  { type: "rainbow", duration: 7 },
+  { type: "yellow", duration: 24 },
+  { type: "rainbow", duration: 22 },
+  { type: "yellow", duration: 24 }
+];
 
-const intervalAB = 22.5; // 虹 → 黄
-const intervalBA = 22.5; // 黄 → 虹
+let phaseIndex = 0;
+let timeLeft = 7;
+let timer = null;
 
-const fileA="A.mp4";
-const fileB="B.mp4";
+function start() {
+  phaseIndex = 0;
+  timeLeft = 7;
+  updateDisplay();
 
-const caption = document.getElementById("caption");
-const player  = document.getElementById("player");
+  clearInterval(timer);
 
-function wait(ms){
-  return new Promise(r=>setTimeout(r,ms));
-}
+  timer = setInterval(() => {
+    let phase = phases[phaseIndex];
 
-async function playSound(type){
-  player.src = type==="A"?fileA:fileB;
-  player.currentTime=0;
-  try{ await player.play(); }catch{}
-}
-
-// ⭐ 通常サイクル
-async function cycle(type){
-
-  const total = type==="A"?intervalAB:intervalBA;
-  const start = performance.now();
-  let played=false;
-
-  while(running){
-
-    const elapsed=(performance.now()-start)/1000;
-    const remain=total-elapsed;
-    if(remain<=0) break;
-
-    const t=Math.ceil(remain);
-
-    if(remain<=4){
-
-      if(!played){
-        played=true;
-        playSound(type);
-      }
-
-      if(type==="A"){
-        caption.className="rainbow";
-        caption.textContent="虹色の床まで "+t+"秒";
-      }else{
-        caption.className="yellow";
-        caption.textContent="黄色の床まで "+t+"秒";
-      }
-
-    }else{
-      caption.className="normal";
-      caption.textContent="次の床まで "+t+"秒";
+    // 4.3秒前に音
+    if (timeLeft === 5) {
+      if (phase.type === "rainbow")
+        document.getElementById("A").play();
+      else
+        document.getElementById("B").play();
     }
 
-    await wait(50);
-  }
+    timeLeft--;
 
-  caption.textContent="";
+    if (timeLeft <= 0) {
+      phaseIndex++;
+
+      if (phaseIndex >= phases.length)
+        phaseIndex = 2; // 22↔24ループ
+
+      timeLeft = phases[phaseIndex].duration;
+    }
+
+    updateDisplay();
+
+  }, 1000);
 }
 
-// ⭐ 最初専用：虹4秒だけ
-async function firstA(){
+function updateDisplay() {
+  let phase = phases[phaseIndex];
 
-  playSound("A");
-
-  for(let t=4; t>0 && running; t--){
-    caption.className="rainbow";
-    caption.textContent="虹色の床まで "+t+"秒";
-    await wait(1000);
-  }
-
-  caption.textContent="";
-}
-
-async function startTimer(){
-
-  if(running) return;
-
-  running=true;
-  current="A";
-
-  // ⭐ 2.5秒無表示
-  await wait(2500);
-
-  // ⭐ 最初のA（4秒固定）
-  await firstA();
-
-  current="B";
-
-  // ⭐ 通常ループ
-  while(running){
-    await cycle(current);
-    current = current==="A"?"B":"A";
-  }
+  if (phase.type === "rainbow")
+    display.textContent = `虹の床まで${timeLeft}秒`;
+  else
+    display.textContent = `黄色の床まで${timeLeft}秒`;
 }
 </script>
 
 </body>
 </html>
-
