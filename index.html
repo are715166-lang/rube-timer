@@ -1,68 +1,77 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>A/B Timer</title>
-<style>
-body { font-family: sans-serif; text-align:center; margin-top:50px; }
-#label { font-size:48px; margin:20px; }
-#count { font-size:36px; }
-button { font-size:24px; padding:10px 30px; }
-</style>
-</head>
-<body>
-
-<button onclick="start()">開始</button>
-
-<div id="label">待機</div>
-<div id="count"></div>
-
-<audio id="voiceA" src="A.mp3"></audio>
-<audio id="voiceB" src="B.mp3"></audio>
-
 <script>
-let phase = "A";
+let running=false;
+let current="A";
 
-const DUR_A_TO_B = 20000; // A→B 20秒
-const DUR_B_TO_A = 24000; // B→A 24秒
+const intervalAB = 20.5; // 虹→黄
+const intervalBA = 24.5; // 黄→虹
 
-function start() {
-  phase = "A";
-  document.getElementById("label").textContent = "A";
+const fileA="A.mp4";
+const fileB="B.mp4";
 
-  setTimeout(() => runPhase("A"), 2500);
+function wait(ms){
+  return new Promise(r=>setTimeout(r,ms));
 }
 
-function runPhase(p) {
-  const voice = document.getElementById("voice" + p);
-  voice.currentTime = 0;
-  voice.play();
+async function playSound(type){
+  player.src = type==="A"?fileA:fileB;
+  player.currentTime=0;
+  try{ await player.play(); }catch{}
+}
 
-  // 虹色まで4秒カウント
-  let c = 4;
-  document.getElementById("count").textContent = c;
-  const countTimer = setInterval(() => {
-    c--;
-    if (c <= 0) {
-      clearInterval(countTimer);
-      document.getElementById("count").textContent = "";
-    } else {
-      document.getElementById("count").textContent = c;
+async function cycle(type){
+
+  const total = type==="A"?intervalAB:intervalBA;
+  const start = performance.now();
+  let played=false;
+
+  while(running){
+
+    const elapsed=(performance.now()-start)/1000;
+    const remain=total-elapsed;
+    if(remain<=0) break;
+
+    const t=Math.ceil(remain);
+
+    if(remain<=4){
+
+      // ⭐ ここで初めてA音声再生
+      if(!played){
+        played=true;
+        playSound(type);
+      }
+
+      if(type==="A"){
+        caption.className="rainbow";
+        caption.textContent="虹色の床まで "+t+"秒";
+      }else{
+        caption.className="yellow";
+        caption.textContent="黄色の床まで "+t+"秒";
+      }
+
+    }else{
+      caption.className="normal";
+      caption.textContent="次の床まで "+t+"秒";
     }
-  }, 1000);
 
-  const duration = (p === "A") ? DUR_A_TO_B : DUR_B_TO_A;
+    await wait(50);
+  }
 
-  // 次の4秒前に瞬時切替
-  setTimeout(() => {
-    phase = (p === "A") ? "B" : "A";
-    document.getElementById("label").textContent = phase;
-  }, duration - 4000);
+  caption.textContent="";
+}
 
-  // 次フェーズ開始
-  setTimeout(() => runPhase(phase), duration);
+async function startTimer(){
+
+  if(running) return;
+  running=true;
+  current="A";
+
+  // ⭐ 最初だけ 2.5秒待つ
+  await wait(2500);
+
+  // ⭐ ここで虹カウント開始（＝Aの開始）
+  while(running){
+    await cycle(current);
+    current = current==="A"?"B":"A";
+  }
 }
 </script>
-
-</body>
-</html>
