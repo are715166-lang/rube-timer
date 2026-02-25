@@ -3,100 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <title>ルベタイマーⅢ</title>
+
 <style>
-body {
-  background: black;
-  color: white;
-  font-family: sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+body{
+  background:black;
+  color:white;
+  font-family:sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
-.box {
-  text-align: center;
+
+.box{text-align:center;}
+
+h1{font-size:48px;}
+
+#display{
+  font-size:72px;
+  margin:30px 0;
+  font-family:monospace;
+  font-weight:bold;
 }
-h1 {
-  font-size: 48px;
+
+/* 🌈 虹 */
+.rainbow{
+  background: linear-gradient(
+    90deg,
+    red, orange, yellow, lime, cyan, blue, violet
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-#display {
-  font-size: 64px;
-  margin: 30px 0;
-  font-family: monospace;
+
+/* 🟡 黄色 */
+.yellow{
+  color:#FFD700;
+  text-shadow:0 0 10px rgba(255,215,0,0.8);
 }
-button {
-  font-size: 24px;
-  padding: 15px 40px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
+
+button{
+  font-size:22px;
+  padding:12px 28px;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  margin:6px;
 }
 </style>
 </head>
+
 <body>
 
 <div class="box">
   <h1>ルベタイマーⅢ</h1>
   <div id="display">待機中</div>
-  <button onclick="start()">開始</button>
+
+  <div>
+    <button onclick="startNormal()">開始</button>
+    <button onclick="startFromRainbow()">虹から</button>
+    <button onclick="startFromYellow()">黄色から</button>
+  </div>
 </div>
 
 <audio id="A" src="A.mp4"></audio>
 <audio id="B" src="B.mp4"></audio>
 
 <script>
-let phases = [
-  { type: "rainbow", duration: 7 },
-  { type: "yellow", duration: 24 },
-  { type: "rainbow", duration: 22 },
-  { type: "yellow", duration: 24 }
+// フェーズ定義
+const phases = [
+  { type:"rainbow", duration:6.5 },
+  { type:"yellow",  duration:22.8 },
+  { type:"rainbow", duration:23.7 },
+  { type:"yellow",  duration:22.8 }
 ];
 
 let phaseIndex = 0;
-let timeLeft = 7;
+let timeLeft = 6.5;
 let timer = null;
+let lastBeepPhase = -1;
 
-function start() {
-  phaseIndex = 0;
-  timeLeft = 7;
-  updateDisplay();
+// ▶️ 通常開始（技発動）
+function startNormal(){
+  startTimer(0);
+}
+
+// 🌈 虹が今出た
+function startFromRainbow(){
+  startTimer(1); // 次は黄色
+}
+
+// 🟡 黄色が今出た
+function startFromYellow(){
+  startTimer(2); // 次は虹
+}
+
+function startTimer(startIndex){
+  phaseIndex = startIndex;
+  timeLeft = phases[phaseIndex].duration;
+  lastBeepPhase = -1;
 
   clearInterval(timer);
 
-  timer = setInterval(() => {
-    let phase = phases[phaseIndex];
+  timer = setInterval(()=>{
+    const phase = phases[phaseIndex];
 
-    // 4.3秒前に音
-    if (timeLeft === 5) {
-      if (phase.type === "rainbow")
-        document.getElementById("A").play();
-      else
-        document.getElementById("B").play();
+    // 🔔 4.3秒前に音
+    if(timeLeft <= 4.3 && lastBeepPhase !== phaseIndex){
+      if(phase.type === "rainbow") A.play();
+      else B.play();
+      lastBeepPhase = phaseIndex;
     }
 
-    timeLeft--;
+    timeLeft -= 0.1;
 
-    if (timeLeft <= 0) {
+    if(timeLeft <= 0){
       phaseIndex++;
-
-      if (phaseIndex >= phases.length)
-        phaseIndex = 2; // 22↔24ループ
-
+      if(phaseIndex >= phases.length) phaseIndex = 2;
       timeLeft = phases[phaseIndex].duration;
+      lastBeepPhase = -1;
     }
 
     updateDisplay();
 
-  }, 1000);
+  }, 100);
 }
 
-function updateDisplay() {
-  let phase = phases[phaseIndex];
+function updateDisplay(){
+  const phase = phases[phaseIndex];
+  const t = timeLeft.toFixed(1);
 
-  if (phase.type === "rainbow")
-    display.textContent = `虹の床まで${timeLeft}秒`;
-  else
-    display.textContent = `黄色の床まで${timeLeft}秒`;
+  if(phase.type === "rainbow"){
+    display.textContent = `虹の床まで${t}秒`;
+    display.className = "rainbow";
+  }else{
+    display.textContent = `黄色の床まで${t}秒`;
+    display.className = "yellow";
+  }
 }
 </script>
 
